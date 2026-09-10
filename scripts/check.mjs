@@ -1,0 +1,3 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import {generate,defaults,sanitize,toOBJ} from '../dist/model.js';
+assert.equal(sanitize({height:Infinity}).height,defaults.height);assert.equal(sanitize({height:99}).height,2.05);
+for(const face of [false,true]){const start=performance.now(),m=generate(defaults,96,face);assert(m.vertices.length>900);assert(m.vertices.every(Number.isFinite));assert(m.normals.every(Number.isFinite));assert.equal(m.vertices.length,m.normals.length);const obj=toOBJ(m);assert(obj.includes('\nf '));console.log(JSON.stringify({mode:face?'face':'body',triangles:m.vertices.length/9,seconds:(performance.now()-start)/1000}));}

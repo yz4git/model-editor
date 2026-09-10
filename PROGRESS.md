@@ -1,13 +1,13 @@
-# Model Editor
+# Progress — 2026-09-10
 
-## Goal
-Generate editable human body and face meshes from explicit mathematical models. Mobile Safari first. No assembly of stock sphere/box primitives.
+- [x] Save goals before implementation.
+- [x] Survey primary body/face model sources; document access limits.
+- [x] Implement shape-preserving profiles, facial feature displacement and implicit unions.
+- [x] Extract triangles from the field in a Web Worker.
+- [x] Implement mobile WebGL editing and OBJ/settings export.
+- [x] Save functional initial implementation on main before detailed checks.
+- [x] Add local OBJ section measurement utility.
+- [ ] Fit and validate against real model datasets (large source model retrieval unavailable).
+- [ ] Statistical shape basis / measured reconstruction accuracy.
 
-## Sequence
-1. Survey published parametric body/face models and inspect accessible mesh data.
-2. Implement a documented mathematical surface generator and interactive editor.
-3. Save functional increments on main, then check geometry, interaction and exports.
-
-## Status
-- 2026-09-10: empty repository confirmed. SMPL, SMPL-X, FLAME and MakeHuman primary sources located.
-- Implementation in progress. No measured accuracy or scan-trained reproduction claimed.
+This first release is usable but does not complete the requested broad model-data analysis or high-fidelity reconstruction objective. See docs/RESEARCH.md for exact boundaries.
