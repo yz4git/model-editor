@@ -21,3 +21,5 @@ This release analyzes one real reference mesh and surveys multiple research mode
 - [x] Reused the exact forward deformation field for inverse ratio fitting.
 - [x] Added estimate table, group-preserving apply, known-height input and undo.
 - [x] Added stale-result cancellation, inference timeout and manual fallback.
+- [x] Synthetic inverse-fitting, image-ratio invariance, failure-input and regression checks pass.
+- [ ] Real-photo detector and iPhone Safari end-to-end validation remain unverified.
