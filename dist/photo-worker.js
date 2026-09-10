@@ -5,11 +5,11 @@ const MODELS={face:'https://storage.googleapis.com/mediapipe-models/face_landmar
 onmessage=async({data})=>{let detector,result;const bitmap=data.bitmap;try{
 postMessage({stage:'自動検出の準備中… 初回はモデルの読み込みに時間がかかります。'});
 const vision=await import(`${ROOT}/vision_bundle.mjs`),files=await vision.FilesetResolver.forVisionTasks(`${ROOT}/wasm`);
-const options={baseOptions:{modelAssetPath:MODELS[data.mode],delegate:'CPU'},runningMode:'IMAGE'};
-detector=data.mode==='face'?await vision.FaceLandmarker.createFromOptions(files,{...options,numFaces:2,minFaceDetectionConfidence:.6,minFacePresenceConfidence:.6}):await vision.PoseLandmarker.createFromOptions(files,{...options,numPoses:2,minPoseDetectionConfidence:.6,minPosePresenceConfidence:.6,outputSegmentationMasks:true});
+const options={baseOptions:{modelAssetPath:MODELS[data.mode.startsWith('face')?'face':'body'],delegate:'CPU'},runningMode:'IMAGE'};
+detector=data.mode.startsWith('face')?await vision.FaceLandmarker.createFromOptions(files,{...options,numFaces:2,minFaceDetectionConfidence:.6,minFacePresenceConfidence:.6}):await vision.PoseLandmarker.createFromOptions(files,{...options,numPoses:2,minPoseDetectionConfidence:.6,minPosePresenceConfidence:.6,outputSegmentationMasks:true});
 postMessage({stage:'画像の特徴点を検出中…'});
 const canvas=new OffscreenCanvas(bitmap.width,bitmap.height);canvas.getContext('2d').drawImage(bitmap,0,0);result=detector.detect(canvas);
-const landmarks=data.mode==='face'?result.faceLandmarks:result.landmarks;
+const landmarks=data.mode.startsWith('face')?result.faceLandmarks:result.landmarks;
 const output={landmarks:landmarks.map(a=>a.map(p=>({x:p.x,y:p.y,z:p.z,visibility:p.visibility}))),worldLandmarks:result.worldLandmarks};
 if(result.segmentationMasks?.length===1){const m=result.segmentationMasks[0];output.mask={width:m.width,height:m.height,values:m.getAsFloat32Array().slice()};}
 postMessage({result:output},output.mask?[output.mask.values.buffer]:[]);

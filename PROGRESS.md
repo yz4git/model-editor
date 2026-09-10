@@ -23,3 +23,11 @@ This release analyzes one real reference mesh and surveys multiple research mode
 - [x] Added stale-result cancellation, inference timeout and manual fallback.
 - [x] Synthetic inverse-fitting, image-ratio invariance, failure-input and regression checks pass.
 - [ ] Real-photo detector and iPhone Safari end-to-end validation remain unverified.
+
+## Side image update
+- [x] Face and body side modes, profile points, mask-derived depth estimates and manual correction.
+- [x] Three independent body-depth parameters, nose fitting and side-view application.
+- [x] Synthetic recovery, mirrored input and frontal-shape preservation checks.
+- [ ] Real profile detector / iPhone verification.
+
+- [x] Added seven independent facial refinements in both generators; existing JSON settings remain compatible.

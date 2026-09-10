@@ -1,5 +1,5 @@
-export const defaults={height:1.72,shoulders:1,waist:1,hips:1,muscle:.35,legs:1,head:1,faceWidth:1,jaw:1,eyes:1,nose:1,lips:1};
-export const definitions=[['体格',[['height','身長',1.45,2.05,.01],['shoulders','肩幅',.8,1.2,.01],['waist','胴まわり',.75,1.35,.01],['hips','骨盤幅',.8,1.25,.01],['muscle','筋肉量',0,1,.01],['legs','脚の長さ',.88,1.12,.01],['head','頭の大きさ',.88,1.12,.01]]],['顔立ち',[['faceWidth','顔幅',.85,1.2,.01],['jaw','顎幅',.75,1.25,.01],['eyes','目の間隔',.8,1.2,.01],['nose','鼻の高さ',.6,1.5,.01],['lips','唇の厚さ',.6,1.5,.01]]]];
+export const defaults={height:1.72,shoulders:1,waist:1,hips:1,muscle:.35,legs:1,head:1,faceWidth:1,jaw:1,eyes:1,nose:1,lips:1,chestDepth:1,waistDepth:1,hipsDepth:1,noseWidth:1,eyeSize:1,mouthWidth:1,cheekVolume:1,chinLength:1,chinProjection:1,foreheadDepth:1};
+export const definitions=[['体格',[['height','身長',1.45,2.05,.01],['shoulders','肩幅',.8,1.2,.01],['waist','胴まわり',.75,1.35,.01],['hips','骨盤幅',.8,1.25,.01],['chestDepth','胸の厚み',.7,1.4,.01],['waistDepth','腰の厚み',.7,1.4,.01],['hipsDepth','骨盤の厚み',.7,1.4,.01],['muscle','筋肉量',0,1,.01],['legs','脚の長さ',.88,1.12,.01],['head','頭の大きさ',.88,1.12,.01]]],['顔立ち',[['faceWidth','顔幅',.85,1.2,.01],['jaw','顎幅',.75,1.25,.01],['eyes','目の間隔',.8,1.2,.01],['nose','鼻の高さ',.6,1.5,.01],['lips','唇の厚さ',.6,1.5,.01],['noseWidth','鼻幅',.65,1.4,.01],['eyeSize','目の大きさ',.75,1.25,.01],['mouthWidth','口幅',.7,1.3,.01],['cheekVolume','頬のふくらみ',.7,1.35,.01],['chinLength','顎の長さ',.7,1.3,.01],['chinProjection','顎先の前後',.6,1.4,.01],['foreheadDepth','額の奥行き',.7,1.3,.01]]]];
 export function sanitize(a){const p={...defaults};for(const [,ds] of definitions)for(const [k,,lo,hi] of ds)if(Number.isFinite(a[k]))p[k]=Math.max(lo,Math.min(hi,a[k]));return p;}
 const g=(x,s)=>Math.exp(-x*x/(s*s));
 // Shape preserving cubic Hermite interpolation: derivative is zero at extrema.
@@ -14,9 +14,16 @@ function section(rows,x,y,z,detail=0){const yc=Math.max(rows[0][0],Math.min(rows
 const legs=[[.045,.025,.032,.012],[.12,.03,.035,0],[.29,.051+m*.013,.058+m*.013,-.01],[.43,.046,.044,.005],[.49,.044,.047,.01],[.63,.063+m*.014,.072+m*.012,0],[legTop,.081*p.hips,.085,0],[legTop+.06,.07,.07,0]];
 const arms=[[0,.067+m*.012,.067+m*.012,0],[.11,.056+m*.012,.058,0],[.25,.036,.037,0],[.34,.044+m*.007,.039,0],[.47,.026,.026,0],[.53,.032,.019,0],[.58,.029,.016,0],[.61,.015,.011,0]];
 return {top:headBase+.273*hs,headBase,field:(x,y,z)=>{
+z/=1+(p.chestDepth-1)*g(y-(1.32+dy),.075)+(p.waistDepth-1)*g(y-(1.06+dy),.08)+(p.hipsDepth-1)*g(y-legTop,.08);
 let f=section(torso,x,y,z);
-const hy=(y-headBase)/hs,hx=x/hs,hz=z/hs;
-let detail=0;if(hz>0&&hy<.20&&hy>0){const e=.033*p.eyes;detail=.028*p.nose*g(hx,.015)*g(hy-.112,.038)+.019*p.nose*g(hx,.019)*g(hy-.09,.013)-.015*(g(hx-e,.022)+g(hx+e,.022))*g(hy-.137,.013)+.006*(g(hx-e,.026)+g(hx+e,.026))*g(hy-.159,.009)+.008*(g(hx-.044,.023)+g(hx+.044,.023))*g(hy-.10,.018)+.009*p.lips*g(hx,.029)*g(hy-.051,.008)+.009*p.lips*g(hx,.029)*g(hy-.039,.007)-.006*g(hx,.027)*g(hy-.046,.0025);}
+let hy=(y-headBase)/hs,hx=x/hs,hz=z/hs;
+const anterior=Math.max(0,Math.min(1,(hz-.015)/.04));
+hy+=.018*(p.chinLength-1)*g(hy-.027,.035);
+hz-=anterior*(.022*(p.chinProjection-1)*g(hy-.025,.032)*g(hx,.045)+.025*(p.foreheadDepth-1)*g(hy-.202,.038));
+hx/=1+anterior*((p.noseWidth-1)*g(hx,.025)*g(hy-.102,.026)+(p.mouthWidth-1)*g(hx,.048)*g(hy-.048,.02)+.65*(p.cheekVolume-1)*g(hy-.095,.025));
+hz-=anterior*.012*(p.cheekVolume-1)*(g(hx-.04,.025)+g(hx+.04,.025))*g(hy-.095,.022);
+
+let detail=0;if(hz>0&&hy<.20&&hy>0){const e=.033*p.eyes;detail=.028*p.nose*g(hx,.015)*g(hy-.112,.038)+.019*p.nose*g(hx,.019)*g(hy-.09,.013)-.015*(g(hx-e,.022*p.eyeSize)+g(hx+e,.022*p.eyeSize))*g(hy-.137,.013*p.eyeSize)+.006*(g(hx-e,.026)+g(hx+e,.026))*g(hy-.159,.009)+.008*(g(hx-.044,.023)+g(hx+.044,.023))*g(hy-.10,.018)+.009*p.lips*g(hx,.029)*g(hy-.051,.008)+.009*p.lips*g(hx,.029)*g(hy-.039,.007)-.006*g(hx,.027)*g(hy-.046,.0025);}
 f=sm(f,section(head,hx,hy,hz,detail)*hs,.016);
 const ax=Math.abs(x),lc=.084*p.hips+.018*(1-Math.min(1,y/legTop));
 f=sm(f,section(legs,ax-lc,y,z),.027);

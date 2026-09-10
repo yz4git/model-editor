@@ -24,3 +24,14 @@
 - Non-square image coordinate conversion, unrelated-parameter preservation, open-mouth lip exclusion, rejection of zero/multiple/low-visibility detections and center-connected silhouette isolation pass.
 - Existing mesh/export and all-control sensitivity checks pass after sharing the forward deformer.
 - Detector integration follows the official MediaPipe Web APIs; live remote model loading and automatic detection in iPhone Safari are not verified in this environment. CDN requests could not be inspected through the available web-fetch service. Manual image landmark placement uses bundled code and data.
+
+## Side-image update
+- Side projection fitting and mirrored profiles pass for nose, chest, waist and pelvis depth.
+- Verified exact preservation of measured-model X/Y coordinates under side-only parameter edits.
+- Existing frontal fitting and mesh-generation tests pass.
+- Real-photo profile detection and iPhone interaction remain unverified.
+
+## Expanded facial controls
+- Seven added controls increase facial controls to 12 and total controls to 22.
+- All 22 measured-model controls pass geometry sensitivity checks; existing neutral coordinates and export topology stay stable.
+- New fields default to 1 when absent from old saved settings. Both independent implicit and measured generators consume them.
