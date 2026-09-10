@@ -12,3 +12,6 @@
 - [ ] Statistical shape basis / measured reconstruction accuracy.
 
 This release analyzes one real reference mesh and surveys multiple research model families. Statistical population fitting and held-out reconstruction accuracy remain future work. See docs/RESEARCH.md for exact boundaries.
+
+- [x] Finite geometry/export tests, parameter sensitivity and height checks pass; offline mesh renders inspected.
+- [ ] iPhone Safari device verification (browser binary unavailable here).
