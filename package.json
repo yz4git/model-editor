@@ -1,1 +1,1 @@
-{"name":"form-model-editor","private":true,"type":"module","scripts":{"test":"node scripts/check.mjs && node scripts/check-photo.mjs && node scripts/check-side.mjs","start":"python3 -m http.server 4173 --directory dist"}}
+{"name":"form-model-editor","private":true,"type":"module","scripts":{"test":"node scripts/check.mjs && node scripts/check-photo.mjs && node scripts/check-side.mjs && node scripts/check-profile-contour.mjs","start":"python3 -m http.server 4173 --directory dist"}}

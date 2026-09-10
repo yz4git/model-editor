@@ -35,3 +35,8 @@
 - Seven added controls increase facial controls to 12 and total controls to 22.
 - All 22 measured-model controls pass geometry sensitivity checks; existing neutral coordinates and export topology stay stable.
 - New fields default to 1 when absent from old saved settings. Both independent implicit and measured generators consume them.
+
+## Profile contour regression
+- The supplied JPEG was decoded locally, reduced to 512px, and passed through the actual JavaScript detector. Nose-root, tip and chin candidate overlays were visually inspected.
+- The horizontally mirrored image produces exactly mirrored points. Blank and undersized inputs are rejected.
+- Forehead remains an inferred point requiring confirmation. Real-browser/iPhone interaction remains unverified.

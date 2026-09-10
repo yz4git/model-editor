@@ -46,3 +46,11 @@ Select `faceSide` (顔・側面) or `bodySide` (体・側面). Both horizontal o
 - The depth controls alter Z only in the measured data model, preserving every frontal X/Y coordinate. Face width, jaw width, eye spacing and body width parameters are preserved when a side photo is applied. The implicit model also supports depth controls.
 - Side detection reuses the existing face/pose detector but maps profile measurements and rejects clearly frontal inputs. Complete profiles may defeat the detector; manual points remain available and require position confirmation. Clothing and arms can contaminate masks. True lateral, upright images are needed. These measurements do not reconstruct arbitrary 3D shape or camera perspective.
 - Synthetic side projections recover the four fitted parameters within 0.02 slider units. Horizontal-mirror invariance and exact preservation of frontal model coordinates pass. Real-profile automatic detection and iPhone Safari interaction remain unverified.
+
+## Hair-occluded full-profile fallback
+
+Face-side mode first tries a bundled pixel-contour detector. It uses warm-color runs with bright interior support, a smoothed exterior profile, nose-lobe prominence and lower-face termination geometry. It checks both orientations and rejects ambiguous or implausibly tilted candidates. No coordinates or image fingerprint are hardcoded. This is deliberately limited to clear-background portraits with suitable skin/background contrast; it is not a universal landmark model.
+
+The three visible points are nose-root, nose-tip and chin candidates. Forehead is extrapolated using the reference face proportion and is explicitly labeled inferred, especially when hair covers it. All four points must be confirmed before fitting. On a failed frontal-face detector, the same fallback can switch the image mode to side. Manual placement remains available.
+
+The user-supplied side portrait was processed directly as image pixels, inspected with point overlays, and tested after horizontal mirroring. The private image and its derived coordinates are not bundled or committed. The detected measurements can exceed the current nose slider range; this is reported as a fitting limit, not hidden as detection success or an exact likeness claim.

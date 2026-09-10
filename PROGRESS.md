@@ -31,3 +31,6 @@ This release analyzes one real reference mesh and surveys multiple research mode
 - [ ] Real profile detector / iPhone verification.
 
 - [x] Added seven independent facial refinements in both generators; existing JSON settings remain compatible.
+
+- [x] Added image-derived contour fallback for complete side portraits with hair occlusion.
+- [x] Actual uploaded-image and mirrored-image detector checks pass; forehead is marked inferred and requires confirmation.
