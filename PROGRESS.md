@@ -34,3 +34,7 @@ This release analyzes one real reference mesh and surveys multiple research mode
 
 - [x] Added image-derived contour fallback for complete side portraits with hair occlusion.
 - [x] Actual uploaded-image and mirrored-image detector checks pass; forehead is marked inferred and requires confirmation.
+
+## Expanded profile controls
+
+Side-face fitting now adjusts five controls from six editable landmarks: nose, chinProjection, foreheadDepth, chinLength and the new mouthProjection. There are 13 facial / 23 total controls. Synthetic non-neutral projections recover all five within 0.02 slider units and remain invariant under mirroring (numerical tolerance 1e-8). Forehead remains inferred and confirmation is required. Browser/iPhone operation has not been verified.

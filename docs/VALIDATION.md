@@ -40,3 +40,7 @@
 - The supplied JPEG was decoded locally, reduced to 512px, and passed through the actual JavaScript detector. Nose-root, tip and chin candidate overlays were visually inspected.
 - The horizontally mirrored image produces exactly mirrored points. Blank and undersized inputs are rejected.
 - Forehead remains an inferred point requiring confirmation. Real-browser/iPhone interaction remains unverified.
+
+## Expanded profile controls
+
+Side-face fitting now adjusts five controls from six editable landmarks: nose, chinProjection, foreheadDepth, chinLength and the new mouthProjection. There are 13 facial / 23 total controls. Synthetic non-neutral projections recover all five within 0.02 slider units and remain invariant under mirroring (numerical tolerance 1e-8). Forehead remains inferred and confirmation is required. Browser/iPhone operation has not been verified.

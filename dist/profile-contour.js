@@ -15,7 +15,8 @@ export function profileContour(rgba,width,height){
  if(!chin||chin.y-best.root[1]<height*.15||Math.abs(chin.x-best.root[0])>(chin.y-best.root[1])*.5)continue;
  const cutoff=chin.x-width*.035,limit=Math.min(height-1,chin.y+Math.round(height*.025));for(let j=chin.y+1;j<=limit;j++){if(Number.isFinite(curve[j])&&curve[j]>=cutoff){chin.x=curve[j];chin.y=j;}}
  const root={x:best.root[0],y:best.root[1]},tip={x:best.x,y:best.y},end={x:chin.x,y:chin.y};const forehead={x:root.x+.5*(root.x-end.x),y:root.y-.5*(end.y-root.y)};if(forehead.y<0||forehead.x>=width||forehead.x<0)continue;
- const map=p=>({x:direction?width-1-p.x:p.x,y:p.y});candidates.push({score:best.score,points:{forehead:map(forehead),chin:map(end),noseRoot:map(root),noseTip:map(tip)},direction:direction?'left':'right'});
+ const lower=[];for(let j=best.y+Math.round(height*.025);j<Math.min(end.y-height*.11,best.y+height*.09);j++)if(Number.isFinite(curve[j])&&curve[j]>best.x-width*.15)lower.push({x:curve[j],y:j});if(lower.length<4)continue;const noseBase=lower.reduce((a,b)=>a.x<b.x?a:b);const lips=[];for(let j=noseBase.y+2;j<Math.min(end.y-height*.08,noseBase.y+height*.10);j++)if(Number.isFinite(curve[j]))lips.push({x:curve[j],y:j});if(lips.length<3)continue;const mouth=lips.reduce((a,b)=>a.x>b.x?a:b);
+ const map=p=>({x:direction?width-1-p.x:p.x,y:p.y});candidates.push({score:best.score,points:{forehead:map(forehead),chin:map(end),noseRoot:map(root),noseTip:map(tip),noseBase:map(noseBase),mouth:map(mouth)},direction:direction?'left':'right'});
  }
  candidates.sort((a,b)=>b.score-a.score);if(!candidates.length)throw Error('明瞭な横顔の輪郭が見つかりませんでした。');
  if(candidates.length>1&&candidates[0].score<candidates[1].score*1.12)throw Error('横顔の向きを判定できませんでした。');

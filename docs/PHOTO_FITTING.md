@@ -41,16 +41,16 @@ Pose model: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pos
 
 Select `faceSide` (顔・側面) or `bodySide` (体・側面). Both horizontal orientations are supported by absolute projected distances. The reference model is projected onto its Z/Y plane, rather than the frontal X/Y plane. Side application opens the 3D side view.
 
-- Face: forehead/chin provide scale and in-plane vertical direction. Nose-root to tip distance perpendicular to that direction fits the existing nose parameter. Four editable points.
+- Face: six editable points (forehead, chin, nose root, nose tip, nose base and upper lip) fit nose projection, chin projection, forehead depth, chin length and mouth projection. Nose root/base provide scale and direction; a bounded numerical refinement resolves the five coupled measurements.
 - Body: the visible shoulder/hip provide scale/direction. Center-connected mask spans at chest (22% down the torso), waist (50%) and hip (100%) fit three new independent parameters: chestDepth, waistDepth, hipsDepth. Eight editable points.
 - The depth controls alter Z only in the measured data model, preserving every frontal X/Y coordinate. Face width, jaw width, eye spacing and body width parameters are preserved when a side photo is applied. The implicit model also supports depth controls.
 - Side detection reuses the existing face/pose detector but maps profile measurements and rejects clearly frontal inputs. Complete profiles may defeat the detector; manual points remain available and require position confirmation. Clothing and arms can contaminate masks. True lateral, upright images are needed. These measurements do not reconstruct arbitrary 3D shape or camera perspective.
-- Synthetic side projections recover the four fitted parameters within 0.02 slider units. Horizontal-mirror invariance and exact preservation of frontal model coordinates pass. Real-profile automatic detection and iPhone Safari interaction remain unverified.
+- Synthetic side projections recover the eight fitted parameters within 0.02 slider units. Horizontal-mirror invariance passes. Depth-only changes preserve frontal coordinates; chin length intentionally changes vertical coordinates. Real-profile automatic detection and iPhone Safari interaction remain unverified.
 
 ## Hair-occluded full-profile fallback
 
 Face-side mode first tries a bundled pixel-contour detector. It uses warm-color runs with bright interior support, a smoothed exterior profile, nose-lobe prominence and lower-face termination geometry. It checks both orientations and rejects ambiguous or implausibly tilted candidates. No coordinates or image fingerprint are hardcoded. This is deliberately limited to clear-background portraits with suitable skin/background contrast; it is not a universal landmark model.
 
-The three visible points are nose-root, nose-tip and chin candidates. Forehead is extrapolated using the reference face proportion and is explicitly labeled inferred, especially when hair covers it. All four points must be confirmed before fitting. On a failed frontal-face detector, the same fallback can switch the image mode to side. Manual placement remains available.
+Visible candidate points are nose root, nose tip, nose base, upper lip and chin. Forehead is extrapolated using the reference face proportion and is explicitly labeled inferred, especially when hair covers it. All six points must be confirmed before fitting. On a failed frontal-face detector, the same fallback can switch the image mode to side. Manual placement remains available.
 
 The user-supplied side portrait was processed directly as image pixels, inspected with point overlays, and tested after horizontal mirroring. The private image and its derived coordinates are not bundled or committed. The detected measurements can exceed the current nose slider range; this is reported as a fitting limit, not hidden as detection success or an exact likeness claim.

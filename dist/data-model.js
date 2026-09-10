@@ -14,6 +14,7 @@ const mouthY=jaw[1]+.022;yy+=(p.lips-1)*(y-mouthY)*.75*bell(y,mouthY,.012)*bell(
 const anterior=smooth(.035,.075,z)*head;
 xx+=(p.noseWidth-1)*x*bell(x,0,.023)*bell(y,eye[1]-.027,.026)*anterior;
 xx+=(p.mouthWidth-1)*x*bell(x,0,.045)*bell(y,mouthY,.019)*anterior;
+zz+=(p.mouthProjection-1)*.026*bell(y,mouthY,.017)*bell(x,0,.042)*anterior;
 const cheek=bell(y,eye[1]-.02,.023)*bell(ax,.043,.025)*anterior;
 xx+=(p.cheekVolume-1)*x*.65*cheek;zz+=(p.cheekVolume-1)*.016*cheek;
 const eyeRegion=bell(x-sgn*eye[0],0,.022)*bell(y,eye[1],.017)*smooth(.025,.06,z)*head;
