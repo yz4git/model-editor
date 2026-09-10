@@ -13,13 +13,15 @@
 
 Sources accessed during this work: SMPL, SMPL-X, FLAME and MakeHuman license page. STAR/SUPR descriptions are from the SMPL official model directory; their full papers were not analyzed in this version.
 
-FLAME's official page reports FLAME 2023 Open under CC-BY-4.0 (November 2025). Earlier versions have different terms. No FLAME model files are bundled. MakeHuman licensing must distinguish application/base assets from exported models; see https://static.makehumancommunity.org/about/license.html . No third-party mesh assets are redistributed here.
+FLAME's official page reports FLAME 2023 Open under CC-BY-4.0 (November 2025). Earlier versions have different terms. No FLAME model files are bundled. MakeHuman licensing must distinguish application/base assets from exported models; see https://static.makehumancommunity.org/about/license.html . A reduced CC0 MakeHuman mesh is bundled with provenance in THIRD_PARTY.md.
 
 ## Data access and evidence
 
-The MakeHuman base OBJ at `makehuman/data/3dobjs/base.obj` was requested through the GitHub connector. The full-resource fetch reported too-large/unsupported; a line-range request returned empty content. Direct public-host retrieval also failed to complete in the available network environment. Therefore this release does **not** claim to have fitted coefficients to that mesh, inspected its vertex statistics, or reproduced scan accuracy.
+The first full-resource and line-range requests failed. A subsequent Git blob fetch succeeded for SHA `d26635e9326e3cca30778fd7b9c00062b03cce09`. Its embedded header explicitly dedicates the asset to CC0 (September 2020). The source has 19,158 vertices including helpers and joint markers. The body alone has 13,380 vertices and 13,378 quad faces. The bundled body + two eye helper surfaces retain 13,524 vertices and 13,518 source faces. Joint marker centroids and 19 normalized cross-section bands are measured in `base-analysis.json`.
 
-The implemented coefficients are authored anatomical approximations, not statistically estimated population parameters. OBJ import performs actual vertex-bound and 19-band cross-section measurements locally and exports the measured data. It does not automatically fit the editor's model. Bands include all vertices at a height, including arms; this is deliberately labeled as a bounding measurement rather than body circumference.
+The asset-derived mode evaluates `M(p) = normalizeHeight[V0 + Σ (p_k − p0_k) D_k(V0,J)]`, using the measured mesh V0 and joint centroids J. D are locally supported Gaussian/ smoothstep deformation fields for shoulder translation, waist/hip scaling, limb mass, head size, jaw width, eye separation, nose projection and lips. These fields are authored, **not learned from a population**. This is a template-based mathematical generator, distinct from the independent implicit-surface generator. It retains body and eye topology, excludes joint marker boxes and clothing helpers, and includes no rig or expressions.
+
+The resulting data-derived body is not a claim to reconstruct arbitrary people. Cross-section measurements include lateral limbs and are bounding widths/depths, not circumferences. OBJ import measures external data locally; it does not automatically fit the model. Raw imported files are never sent to a server.
 
 ## Explicit equations implemented
 
@@ -41,6 +43,6 @@ Meters are imposed by dividing requested height by the model's analytic upper bo
 
 Body and face modes resample the same field over different bounds. Face export is a cropped head/neck surface and is open at the crop boundary. Marching tetrahedra produces triangulated isosurfaces; it is not animation-ready quad topology. OBJ export welds identical positions at 1 micrometer rounding and excludes collapsed faces. Small fingers can merge at low resolution. Normal vectors use cached per-vertex numerical field gradients for smooth shading.
 
-## Next steps requiring actual data
+## Remaining validation
 
-Download an openly licensed registered model (e.g. FLAME 2023 Open), retain attribution, align coordinates, fit section/feature coefficients or include its learned blend-shape basis, then quantify held-out surface/landmark error. This is required before claiming high-fidelity human reproduction. Add hand-specific basis and retopology/rigging after geometric validation.
+Extend beyond the single acquired MakeHuman reference with an openly licensed registered facial model (e.g. FLAME 2023 Open), align coordinates, incorporate its learned shape basis and quantify held-out surface/landmark error. This is required before claiming high-fidelity human reproduction. Add hand-specific basis and retopology/rigging after geometric validation.

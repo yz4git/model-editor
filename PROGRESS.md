@@ -7,7 +7,8 @@
 - [x] Implement mobile WebGL editing and OBJ/settings export.
 - [x] Save functional initial implementation on main before detailed checks.
 - [x] Add local OBJ section measurement utility.
-- [ ] Fit and validate against real model datasets (large source model retrieval unavailable).
+- [x] Retrieved MakeHuman mesh by blob SHA after full-resource fetch failed; measured body topology, joint centroids and 19 section bands.
+- [x] Added template-based mathematical generation with measured joint anchors.
 - [ ] Statistical shape basis / measured reconstruction accuracy.
 
-This first release is usable but does not complete the requested broad model-data analysis or high-fidelity reconstruction objective. See docs/RESEARCH.md for exact boundaries.
+This release analyzes one real reference mesh and surveys multiple research model families. Statistical population fitting and held-out reconstruction accuracy remain future work. See docs/RESEARCH.md for exact boundaries.

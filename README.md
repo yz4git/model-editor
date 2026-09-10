@@ -10,4 +10,4 @@ A mobile-first, dependency-free WebGL editor that extracts human body and face m
 
 Run `npm start`, open http://localhost:4173 . Run `npm test` for geometry/export checks.
 
-See [research and equations](docs/RESEARCH.md). v0.1 is an original analytic approximation, not a scan-trained statistical model. Dataset fitting and measured anatomical accuracy are not complete.
+See [research and equations](docs/RESEARCH.md). v0.2 provides both a MakeHuman CC0 template with joint-anchored mathematical deformation and an independent implicit surface model. One actual reference mesh is analyzed; population fitting and measured reconstruction accuracy are not complete.
