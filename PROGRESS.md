@@ -15,3 +15,9 @@ This release analyzes one real reference mesh and surveys multiple research mode
 
 - [x] Finite geometry/export tests, parameter sensitivity and height checks pass; offline mesh renders inspected.
 - [ ] iPhone Safari device verification (browser binary unavailable here).
+
+## Photo fitting update
+- [x] Added local automatic face/body detection and manual editable image landmarks.
+- [x] Reused the exact forward deformation field for inverse ratio fitting.
+- [x] Added estimate table, group-preserving apply, known-height input and undo.
+- [x] Added stale-result cancellation, inference timeout and manual fallback.
