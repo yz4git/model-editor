@@ -1,9 +1,9 @@
-# FORM — Human Model Editor
+# FORM — Character Studio
 
 A mobile-first, dependency-free WebGL editor with two mathematical generators: a measured MakeHuman CC0 template with local shape fields, and an independent anatomical implicit surface.
 
 - Photo-to-model: automatic face/body landmarks, editable image points, calibrated parameter fitting, apply and undo
-- 22 shape parameters, 3 presets, body/face close-up, front/side/back views
+- 23 shape parameters, 3 presets, body/face close-up, front/side/back views
 - Orbit/pinch/zoom controls; settings autosave, JSON import/export
 - OBJ mesh export with position welding
 - Local OBJ cross-section analysis and JSON measurement export
@@ -15,6 +15,11 @@ See [research and equations](docs/RESEARCH.md), [measurements](docs/base-analysi
 
 See [photo fitting](docs/PHOTO_FITTING.md) for supported measurements, local image processing, and limitations.
 
-Side images: select 顔・側面 for nose projection, or 体・側面 for chest/waist/pelvis depth. Front widths remain unchanged. Both left-facing and right-facing photos work; automatic landmark suggestions can be manually corrected.
+Side images: select 顔・側面 for nose/forehead/chin/mouth projection and chin length, or 体・側面 for chest/waist/pelvis depth. Front widths remain unchanged. Both left-facing and right-facing photos work; automatic landmark suggestions can be manually corrected.
 
 Expanded face controls: nose width, eye size, mouth width, cheek volume, chin length, chin projection and forehead depth. Both generators support these controls; legacy settings default them to neutral. Image fitting adjusts only its designated parameters and preserves these manual refinements.
+
+
+## Character Studio 0.3
+
+Adds separate body/head/hair inspection, four hair styles (including none), reference overlays and four-view comparison, real facial morphs and eyelids, a 17-joint rig with four pose controls, Greeting/FaceStudy clips, shared materials, and rigged animated GLB export. No Tripo account or Blender connection is used. See [workflow and limits](docs/CHARACTER_STUDIO.md).

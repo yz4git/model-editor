@@ -26,12 +26,14 @@ xx*=1+(p.head-1)*head;yy+=(p.head-1)*(y-neck)*head;zz*=1+(p.head-1)*head;
 const shoulderY=J['l-shoulder'][1],hipY=J['l-upper-leg'][1];
 zz*=1+(p.chestDepth-1)*bell(y,shoulderY*.78+hipY*.22,.05)*body+(p.waistDepth-1)*bell(y,(shoulderY+hipY)/2,.05)*body+(p.hipsDepth-1)*bell(y,hipY,.05)*body;
 return [xx,yy,zz];}
-export function generateDataModel(data,parameters,face=false,subdivide=false){const p=sanitize(parameters),J=data.joints,neck=J.neck[1],hip=J.pelvis[1];
+export function generateDataModel(data,parameters,face=false,subdivide=false,includeTopology=false){const p=sanitize(parameters),J=data.joints,neck=J.neck[1],hip=J.pelvis[1];
 let vertices=data.vertices.map(v=>deformPoint(v,data,p));
+const sourceVertices=includeTopology?data.vertices.map(v=>[...v]):null;
 let min=Infinity,max=-Infinity;for(const v of vertices){min=Math.min(min,v[1]);max=Math.max(max,v[1]);}const scale=p.height/(max-min);vertices=vertices.map(v=>[v[0]*scale,(v[1]-min)*scale,v[2]*scale]);
 let faces=[],materials=[];data.faces.forEach((f,index)=>{if(face&&f.some(i=>data.vertices[i][1]<neck-.018))return;for(let i=1;i<f.length-1;i++){faces.push([f[0],f[i],f[i+1]]);materials.push(index>=data.bodyFaceCount?1:0);}});
 // Topology-preserving midpoint refinement; not a claim of additional measured detail.
-if(subdivide){const cache=new Map(),next=[],mats=[];const midpoint=(a,b)=>{const key=a<b?a+','+b:b+','+a;if(!cache.has(key)){cache.set(key,vertices.length);vertices.push(vertices[a].map((v,i)=>(v+vertices[b][i])*.5));}return cache.get(key);};faces.forEach(([a,b,c],i)=>{const ab=midpoint(a,b),bc=midpoint(b,c),ca=midpoint(c,a);next.push([a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]);mats.push(...Array(4).fill(materials[i]));});faces=next;materials=mats;}
+if(subdivide){const cache=new Map(),next=[],mats=[];const midpoint=(a,b)=>{const key=a<b?a+','+b:b+','+a;if(!cache.has(key)){cache.set(key,vertices.length);vertices.push(vertices[a].map((v,i)=>(v+vertices[b][i])*.5));if(sourceVertices)sourceVertices.push(sourceVertices[a].map((v,i)=>(v+sourceVertices[b][i])*.5));}return cache.get(key);};faces.forEach(([a,b,c],i)=>{const ab=midpoint(a,b),bc=midpoint(b,c),ca=midpoint(c,a);next.push([a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]);mats.push(...Array(4).fill(materials[i]));});faces=next;materials=mats;}
 const normals=vertices.map(()=>[0,0,0]);for(const [a,b,c] of faces){const u=vertices[b].map((v,i)=>v-vertices[a][i]),v=vertices[c].map((v,i)=>v-vertices[a][i]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];for(const idx of [a,b,c])for(let j=0;j<3;j++)normals[idx][j]+=n[j];}for(const n of normals){const l=Math.hypot(...n)||1;for(let j=0;j<3;j++)n[j]/=l;}
 const out=new Float32Array(faces.length*9),ns=new Float32Array(out.length),colors=new Float32Array(out.length);let k=0;faces.forEach((f,fi)=>{for(const i of f){out.set(vertices[i],k);ns.set(normals[i],k);colors.set(materials[fi]?[.28,.37,.39]:[.70,.77,.76],k);k+=3;}});
-return {vertices:out,normals:ns,colors,height:p.height,headY:((neck+.075)+(p.legs-1)*hip+(p.head-1)*.075-min)*scale};}
+const topology=includeTopology?{vertices,sourceVertices,faces,materials,scale,min,normals}:undefined;
+return {vertices:out,normals:ns,colors,topology,height:p.height,headY:((neck+.075)+(p.legs-1)*hip+(p.head-1)*.075-min)*scale};}
