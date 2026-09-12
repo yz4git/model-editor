@@ -3,7 +3,7 @@
 A mobile-first, dependency-free WebGL editor with two mathematical generators: a measured MakeHuman CC0 template with local shape fields, and an independent anatomical implicit surface.
 
 - Photo-to-model: automatic face/body landmarks, editable image points, calibrated parameter fitting, apply and undo
-- 23 shape parameters, 3 presets, body/face close-up, front/side/back views
+- 76 shape parameters (66 face / 10 body), 3 presets, body/face close-up, front/side/back views
 - Orbit/pinch/zoom controls; settings autosave, JSON import/export
 - OBJ mesh export with position welding
 - Local OBJ cross-section analysis and JSON measurement export
@@ -23,3 +23,8 @@ Expanded face controls: nose width, eye size, mouth width, cheek volume, chin le
 ## Character Studio 0.3
 
 Adds separate body/head/hair inspection, four hair styles (including none), reference overlays and four-view comparison, real facial morphs and eyelids, a 17-joint rig with four pose controls, Greeting/FaceStudy clips, shared materials, and rigged animated GLB export. No Tripo account or Blender connection is used. See [workflow and limits](docs/CHARACTER_STUDIO.md).
+
+
+## Detailed face editor 0.4
+
+66 facial controls in eight selectable regions, per-region reset, face undo, 0.005 nudge buttons and separate brow geometry. Body presets preserve facial edits; prior settings remain compatible. Measured and implicit generators support the additional deformation fields. See [controls and validation](docs/FACE_EDITOR.md).

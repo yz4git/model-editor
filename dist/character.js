@@ -12,7 +12,7 @@ export function buildCharacter(data,parameters,settings,face=false,subdivide=fal
  const p=sanitize(parameters),s=sanitizeStudio(settings),base=generateDataModel(data,p,face,subdivide,true),t=base.topology,J=data.joints;
  const transform=v=>{const d=deformPoint(v,data,p);return [d[0]*t.scale,(d[1]-t.min)*t.scale,d[2]*t.scale];};
  const delta=(v,d)=>{const a=transform(v),b=transform(v.map((x,i)=>x+d[i]));return b.map((x,i)=>x-a[i]);};
- const skin=color(s.skinColor),hair=color(s.hairColor),parts=[newPart('Body','body',skin),newPart('Head','head',skin),newPart('Eyes','head',[.8,.85,.84]),newPart('Hair','hair',hair),newPart('Eyelids','head',skin)],caches=parts.map(()=>new Map());
+ const skin=color(s.skinColor),hair=color(s.hairColor),parts=[newPart('Body','body',skin),newPart('Head','head',skin),newPart('Eyes','head',[.8,.85,.84]),newPart('Hair','hair',hair),newPart('Eyelids','head',skin),newPart('Eyebrows','head',hair)],caches=parts.map(()=>new Map());
  function expression(v,eye){const [x,y,z]=v,a=Math.abs(x),front=smooth(.065,.09,z);if(eye)return [[0,0,0],[0,0,0],[0,0,0]];
  const smile=front*bell(y,.889,.014)*bell(a,.022,.018),jaw=front*(1-smooth(.884,.892,y))*bell(y,.874,.026)*bell(x,0,.047);
  return [[0,0,0],delta(v,[Math.sign(x)*.003*smile,.006*smile,.001*smile]),delta(v,[0,-.012*jaw,-.003*jaw])];}
@@ -21,6 +21,10 @@ export function buildCharacter(data,parameters,settings,face=false,subdivide=fal
  function grid(part,rows,cols,point,morph=()=>zero){const offset=part.vertices.length/3;for(let i=0;i<=rows;i++)for(let j=0;j<=cols;j++){const v=point(i/rows,j/cols);addVertex(part,transform(v),[0,1,0],part.tint,headSkin,morph(v,i/rows,j/cols));}for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){const a=offset+i*(cols+1)+j,b=a+cols+1;part.indices.push(a,b,a+1,a+1,b,b+1);}}
  // Lid surfaces match the measured eyeball radius; the outer rim lies inside the surrounding skin.
  for(const side of [-1,1])for(const upper of [true,false]){const eye=J[side>0?'l-eye':'r-eye'];const point=(u,v,closed)=>{const x=(v*2-1)*.0088,arc=Math.sqrt(Math.max(0,1-(x/.0088)**2)),open=(upper?.0038:-.0038)*arc,edge=closed?-.0006*arc:open,outer=(upper?.008:-.008)*arc,dy=outer*(1-u)+edge*u;return [eye[0]+x,eye[1]+dy,eye[2]+Math.sqrt(Math.max(.000001,.0092**2-x*x-dy*dy))+.00025];};grid(parts[4],8,28,(u,v)=>point(u,v,false),(a,u,v)=>{const b=point(u,v,true),d=transform(b).map((x,i)=>x-transform(a)[i]);return [d,[0,0,0],[0,0,0]];});}
+ // Project narrow brow ribbons onto the original skin; then use the same facial deformer.
+ const browFaces=[];data.faces.slice(0,data.bodyFaceCount).forEach(f=>{if(f.some(i=>data.vertices[i][1]>.963)||f.every(i=>data.vertices[i][1]<.928)||f.every(i=>data.vertices[i][2]<.06))return;for(let i=1;i<f.length-1;i++)browFaces.push([data.vertices[f[0]],data.vertices[f[i]],data.vertices[f[i+1]]]);});
+ const browZ=(x,y)=>{let z=-Infinity;for(const [a,b,c]of browFaces){const den=(b[1]-c[1])*(a[0]-c[0])+(c[0]-b[0])*(a[1]-c[1]);if(Math.abs(den)<1e-12)continue;const u=((b[1]-c[1])*(x-c[0])+(c[0]-b[0])*(y-c[1]))/den,v=((c[1]-a[1])*(x-c[0])+(a[0]-c[0])*(y-c[1]))/den,w=1-u-v;if(u>=0&&v>=0&&w>=0)z=Math.max(z,u*a[2]+v*b[2]+w*c[2]);}return Number.isFinite(z)?z+.0007:.082;};
+ for(const side of [-1,1])grid(parts[5],3,32,(u,v)=>{const x=side*(.007+.030*v),center=.941+.004*Math.sin(v*Math.PI)-.004*v,y=center+(u-.5)*.0035*(.9-.75*v);return [x,y,browZ(x,y)];});
  const hp=parts[3];if(s.hairStyle!=='none'){
  const vol=s.hairVolume;grid(hp,24,64,(u,v)=>{const az=v*Math.PI*2,front=Math.cos(az),limit=front>0?1.45-front*.48:1.65-front*.5,theta=.015+u*limit,ridge=1+.012*Math.cos(az*28+u*4);return [Math.sin(az)*Math.sin(theta)*.050*vol*ridge,.946+Math.cos(theta)*.061*vol,.034+Math.cos(az)*Math.sin(theta)*.061*vol*ridge];});
  const tube=(point,radius,segments=28)=>grid(hp,segments,10,(u,v)=>{const pos=point(u),next=point(Math.min(1,u+.001)),prev=point(Math.max(0,u-.001)),dir=next.map((x,i)=>x-prev[i]),len=Math.hypot(...dir)||1,d=dir.map(x=>x/len),axis=Math.abs(d[1])>.95?[1,0,0]:[0,1,0],n=[d[1]*axis[2]-d[2]*axis[1],d[2]*axis[0]-d[0]*axis[2],d[0]*axis[1]-d[1]*axis[0]],l=Math.hypot(...n)||1;for(let i=0;i<3;i++)n[i]/=l;const b=[d[1]*n[2]-d[2]*n[1],d[2]*n[0]-d[0]*n[2],d[0]*n[1]-d[1]*n[0]],r=radius*(.8+.2*Math.sin(u*Math.PI))*(1-.92*smooth(.75,1,u)),a=v*Math.PI*2;return pos.map((x,i)=>x+r*(Math.cos(a)*n[i]+Math.sin(a)*b[i]));});
@@ -28,7 +32,7 @@ export function buildCharacter(data,parameters,settings,face=false,subdivide=fal
  if(s.hairStyle==='bob')for(let i=0;i<18;i++){const a=.7+i/17*(Math.PI*2-1.4);tube(u=>[Math.sin(a)*(.045+.009*Math.sin(u*Math.PI))*vol,.979-u*(.10+.08*s.hairLength),.034+Math.cos(a)*(.057+.009*Math.sin(u*Math.PI))*vol],.010*vol);}
  if(s.hairStyle==='ponytail')for(let i=0;i<9;i++){const a=i/9*Math.PI*2;tube(u=>[Math.cos(a)*.014*vol*(.5+.5*u)+.015*Math.sin(u*4),.983-u*(.13+.15*s.hairLength)+Math.sin(u*Math.PI)*.035,-.020-.060*Math.sin(u*Math.PI/2)+Math.sin(a)*.017*vol],.012*vol);}
  }
- for(const part of [parts[3],parts[4]])surfaceNormals(part);
+ for(const part of [parts[3],parts[4],parts[5]])surfaceNormals(part);
  for(const part of parts){for(const k of ['vertices','normals','colors','weights','blink','smile','mouth'])part[k]=new Float32Array(part[k]);part.joints=new Uint16Array(part.joints);part.indices=new Uint32Array(part.indices);part.roughness=part.group==='hair'?Math.max(.2,s.roughness*.65):Math.max(.25,s.roughness);}
  delete base.topology;
  return {...base,parts:parts.filter(part=>part.indices.length),rig:makeRig(data,transform),studio:s};

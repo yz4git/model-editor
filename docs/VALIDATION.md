@@ -48,3 +48,7 @@ Side-face fitting now adjusts five controls from six editable landmarks: nose, c
 ## 2026-09-12 — Character Studio 0.3
 
 Implemented the reference workflow as local character tools: part visibility, procedural hair, reference overlay/four-view comparison, three real morph targets with fitted eyelid geometry, 17-joint skinning, joint tests, 3-second Greeting/FaceStudy, material controls, PNG/posed OBJ/rigged GLB and settings v2 migration. Shape and photo-fitting behavior is preserved. Tripo/Blender service integration is not present. Automated geometry/export checks and software-rasterized shape inspection completed; browser/iPhone and Blender import QA remain unverified. See docs/CHARACTER_STUDIO.md for exact scope.
+
+## 2026-09-12 — Detailed face editor 0.4
+
+Expanded 13 to 66 facial shape controls across outline/forehead, brows, eyes, nose, cheeks, mouth, jaw/chin and ears (76 total including body). Added shared anatomical deformation fields, skin-projected brows, per-region selection/reset, face gesture undo and nudge buttons. Body presets preserve facial work. All 66 min/max endpoint checks, neutral coordinate comparison, legacy settings, one-sided squint, existing photo/profile tests and rigged GLB checks pass. Mixed edits were inspected through software geometry rasterization; no browser/iPhone or Blender import QA was performed. See docs/FACE_EDITOR.md.

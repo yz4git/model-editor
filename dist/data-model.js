@@ -1,4 +1,5 @@
 import {sanitize} from './model.js';
+import {faceDetailDelta} from './face-deform.js';
 const bell=(x,c,s)=>Math.exp(-(((x-c)/s)**2)),smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
 // M(p) = normalizeHeight[ V0 + sum_k (p_k-p0_k) D_k(V0,J) ].
 // D_k are local radial-basis deformation fields anchored to measured joints J.
@@ -22,6 +23,7 @@ xx+=(p.eyeSize-1)*(x-sgn*eye[0])*eyeRegion;yy+=(p.eyeSize-1)*(y-eye[1])*eyeRegio
 yy-=(p.chinLength-1)*.021*bell(y,jaw[1],.028)*head;
 zz+=(p.chinProjection-1)*.026*bell(y,jaw[1],.027)*bell(x,0,.042)*anterior;
 zz+=(p.foreheadDepth-1)*.03*bell(y,.972,.035)*anterior;
+const detail=faceDetailDelta([x,y,z],p);xx+=detail[0];yy+=detail[1];zz+=detail[2];
 xx*=1+(p.head-1)*head;yy+=(p.head-1)*(y-neck)*head;zz*=1+(p.head-1)*head;
 const shoulderY=J['l-shoulder'][1],hipY=J['l-upper-leg'][1];
 zz*=1+(p.chestDepth-1)*bell(y,shoulderY*.78+hipY*.22,.05)*body+(p.waistDepth-1)*bell(y,(shoulderY+hipY)/2,.05)*body+(p.hipsDepth-1)*bell(y,hipY,.05)*body;
