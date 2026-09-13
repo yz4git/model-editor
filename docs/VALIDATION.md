@@ -52,3 +52,14 @@ Implemented the reference workflow as local character tools: part visibility, pr
 ## 2026-09-12 — Detailed face editor 0.4
 
 Expanded 13 to 66 facial shape controls across outline/forehead, brows, eyes, nose, cheeks, mouth, jaw/chin and ears (76 total including body). Added shared anatomical deformation fields, skin-projected brows, per-region selection/reset, face gesture undo and nudge buttons. Body presets preserve facial work. All 66 min/max endpoint checks, neutral coordinate comparison, legacy settings, one-sided squint, existing photo/profile tests and rigged GLB checks pass. Mixed edits were inspected through software geometry rasterization; no browser/iPhone or Blender import QA was performed. See docs/FACE_EDITOR.md.
+
+
+## 2026-09-13 — Eye and static-hair materials 0.5
+
+- Fitted textured eyes, wet lid rims, tear ducts, curved blink-following lashes and alpha-tested brows.
+- Layered scalp/flattened hair locks/cards with swept bangs, crown-to-tie guides, feathered edges and wisps. Added part, spread, flyaway and shine controls; eye color, iris/pupil size, wetness, lash length/density.
+- Four local procedural PNG textures embedded in GLB with UVs, normal maps, alpha masks and optional KHR_materials_anisotropy. Expression NORMAL deltas now accompany POSITION deltas. Settings v3 loads v1/v2.
+- Relevant checks passed: check-materials, check-studio and check-face-detail. Embedded PNGs independently decoded and pixel-compared; packed preview UV/morph attributes, fallback paths, normalized weights, animation dimensions and closed lid seam (within 1 micrometre) checked.
+- Actual GLSL compiled/rendered with Mesa/EGL across six views; fixed derivative precision, hair lighting arithmetic, disappearing brows and crown fit. No browser UI test was performed. iPhone Safari performance and game-engine/Blender imports remain unverified.
+- Standard default: 84,436 triangles, 49,376 vertices, 10 parts, 17 joints, 4 embedded PNGs, GLB 10,034,828 bytes. Counts vary with style and lash settings.
+- Remaining production work: authored hairstyle polish, scalp/skin texture detail, LODs and engine-specific lighting/deformation verification. Corneal refraction, skin subsurface scattering and hair physics are not included.

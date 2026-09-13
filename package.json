@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/check.mjs && node scripts/check-photo.mjs && node scripts/check-side.mjs && node scripts/check-profile-contour.mjs && node scripts/check-studio.mjs && node scripts/check-face-detail.mjs",
-    "start": "python3 -m http.server 4173 --directory dist"
+    "start": "python3 -m http.server 4173 --directory dist",
+    "test:materials": "node scripts/check-materials.mjs"
   }
 }
