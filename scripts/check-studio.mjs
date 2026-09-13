@@ -1,3 +1,4 @@
+import './load-art.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {defaults} from '../dist/model.js';

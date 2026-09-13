@@ -57,3 +57,13 @@ Expanded 13 to 66 facial shape controls across outline/forehead, brows, eyes, no
 - Actual GLSL compiled/rendered with Mesa/EGL across six views; fixed derivative precision, hair lighting arithmetic, disappearing brows and crown fit. No browser UI test was performed. iPhone Safari performance and game-engine/Blender imports remain unverified.
 - Standard default: 84,436 triangles, 49,376 vertices, 10 parts, 17 joints, 4 embedded PNGs, GLB 10,034,828 bytes. Counts vary with style and lash settings.
 - Remaining production work: authored hairstyle polish, scalp/skin texture detail, LODs and engine-specific lighting/deformation verification. Corneal refraction, skin subsurface scattering and hair physics are not included.
+
+## 2026-09-13 — Authored eye/hair upgrade 0.6
+
+- [x] Created iris and hair artwork, refined the hair alpha/strand separation, bundled power-of-two sources and preserved prompts.
+- [x] Replaced closed orbital cavities with connected annular lids; corneal coating, tear margins, fine blink-following lashes and independent iris/pupil remapping.
+- [x] Replaced visible hair tubes with layered card guide families, continuous framing, temple/nape coverage, staggered ponytail volume and a wrapped tie.
+- [x] Added a face-only portrait preset with undo, studio reflection approximation and alpha-aware PCF shadows. Cached source images/static maps in a persistent worker.
+- [x] Exported explicit UV tangents, normal maps, alpha and optional clear coat/anisotropy with the same rig, morphs and embedded pixels.
+- [x] Related geometry/material/face-control checks and actual Mesa/EGL shader/shadow renders passed. See docs/CHARACTER_STUDIO.md for current scope and counts.
+- [ ] iPhone Safari UI/performance, optimized LODs, skin asset authoring and target-engine quality review.

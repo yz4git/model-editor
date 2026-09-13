@@ -63,3 +63,11 @@ Expanded 13 to 66 facial shape controls across outline/forehead, brows, eyes, no
 - Actual GLSL compiled/rendered with Mesa/EGL across six views; fixed derivative precision, hair lighting arithmetic, disappearing brows and crown fit. No browser UI test was performed. iPhone Safari performance and game-engine/Blender imports remain unverified.
 - Standard default: 84,436 triangles, 49,376 vertices, 10 parts, 17 joints, 4 embedded PNGs, GLB 10,034,828 bytes. Counts vary with style and lash settings.
 - Remaining production work: authored hairstyle polish, scalp/skin texture detail, LODs and engine-specific lighting/deformation verification. Corneal refraction, skin subsurface scattering and hair physics are not included.
+
+## 2026-09-13 — Authored assets and orbital topology 0.6
+
+- Related checks passed: `check-materials.mjs`, `check-studio.mjs`, `check-face-detail.mjs`. Source PNGs are independently decoded with Node zlib and PNG filter reconstruction.
+- Replaced the fixed lid-vertex-count fixture with ray/triangle intersections: the closed lid must occlude the corneal centre at nine offsets per eye, both at default and coupled eye size/height/tilt edits.
+- Verified exact embedded PNG pixel agreement, 4 material maps, UV and explicit tangent counts, unit/orthogonal tangents, optional anisotropy and clear-coat declarations, morph normals, rig/animation dimensions, preview's eight-attribute packing and shadow/fallback call paths.
+- Actual GLSL and alpha-clipped shadow rendering compiled with Mesa/EGL, error 0, in six views of the neutral and portrait presets. Visual iteration corrected disconnected orbital edges, corneal leakage, frame flips in hair cards, uncovered side undercoat and shadow acne. Final geometry has 140,380 triangles / 84,522 vertices; neutral GLB is 21,691,988 bytes.
+- Browser UI, Safari performance and external engine imports remain unverified. This update does not establish production rig quality or an optimized mobile-game polygon/texture budget.
