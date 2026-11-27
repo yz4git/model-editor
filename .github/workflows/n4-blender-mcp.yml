@@ -1,4 +1,4 @@
-name: N4 isolated Blender MCP validation
+name: N4 D08 Blender MCP head study
 on:
   push:
     branches: [n4-d07-mcp-validation]
@@ -9,7 +9,7 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 35
     env:
       MCP_BRIDGE_HOST: 127.0.0.1
       BLENDER_ADDON_HOST: 127.0.0.1
@@ -29,22 +29,23 @@ jobs:
           git -C "$RUNNER_TEMP/bridge" checkout e1cdb2c9380449eaf4cf04381381899286bd76ee
           python -m venv "$RUNNER_TEMP/bridge-venv"
           "$RUNNER_TEMP/bridge-venv/bin/pip" install "$RUNNER_TEMP/bridge"
-      - name: Run real Blender and MCP client
+      - name: Build D08 using real MCP hair guide objects
         run: |
           set -euxo pipefail
           out="$BLENDER_ASSETS_DIR"
           cat > "$RUNNER_TEMP/start_blender.py" <<'PY'
-          import bpy, sys, os
+          import bpy, sys, os, runpy
           sys.path.insert(0, os.path.join(os.environ["RUNNER_TEMP"], "bridge"))
           import blender_mcp_addon
           blender_mcp_addon.register()
           bpy.ops.blendermcp.start_server()
+          runpy.run_path(os.path.join(os.environ["GITHUB_WORKSPACE"],"tools/n4-d08-build.py"))
           print("N4_MCP_ADDON_STARTED", flush=True)
           PY
           xvfb-run -a "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" --factory-startup --python "$RUNNER_TEMP/start_blender.py" > "$out/blender.log" 2>&1 &
           "$RUNNER_TEMP/bridge-venv/bin/blender-mcp-bridge" serve > "$out/bridge.log" 2>&1 &
           "$RUNNER_TEMP/bridge-venv/bin/python" - <<'PY'
-          import asyncio, json, socket, time, os
+          import asyncio, json, socket, time, os, math
           from pathlib import Path
           from mcp import ClientSession
           from mcp.client.streamable_http import streamablehttp_client
@@ -60,30 +61,65 @@ jobs:
               async with streamablehttp_client("http://127.0.0.1:8008/mcp/?transport=stateful") as streams:
                   async with ClientSession(*streams[:2]) as session:
                       await session.initialize()
-                      tools=await session.list_tools()
-                      (out/"tools.json").write_text(tools.model_dump_json(indent=2))
-                      results={}
+                      (out/"tools.json").write_text((await session.list_tools()).model_dump_json(indent=2))
+                      results=[]
                       async def call(name,args):
                           res=await session.call_tool(name,args)
-                          results[name]=res.model_dump(mode="json")
+                          results.append({"name":name,"args":args,"result":res.model_dump(mode="json")})
                           (out/"calls.json").write_text(json.dumps(results,indent=2))
-                          assert not res.isError, results[name]
+                          assert not res.isError, results[-1]
                           for c in res.content:
                               if getattr(c,"type",None)=="text":
                                   try: payload=json.loads(c.text)
                                   except ValueError: continue
                                   if isinstance(payload,dict):
                                       assert payload.get("status")!="error" and payload.get("success") is not False,payload
-                          return res
                       await call("get_scene_info",{})
-                      await call("create_cube",{"location":[0,0,2],"size":0.1,"name":"N4_MCP_SMOKE"})
-                      obj=await call("get_object_info",{"name":"N4_MCP_SMOKE"})
-                      assert "N4_MCP_SMOKE" in str(obj)
-                      print("N4_REAL_MCP_SMOKE_OK")
+                      guides={}
+                      # Reference fringe: roots near the crown, asymmetric curved tips at upper eyelids.
+                      for i in range(10):
+                          u=(i-4.5)/4.5
+                          x=.10+.55*u
+                          guides[f"MCP_fringe_{i:02}"]=[[.065+.16*u,-.16,2.59],[.15+.38*u,-.56,2.42],[x-.07,-.83,2.09],[x-.08,-.87,1.80],[x+.12,-.77,1.59+.19*abs(u)]]
+                      # Broad face-framing locks, from part through temples then S-shaped tips.
+                      for side in (-1,1):
+                          for i in range(4):
+                              a=.12*i
+                              guides[f"MCP_side_{side}_{i}"]=[[.06+side*(.16+a*.4),-.09+a*.5,2.60-.04*i],[side*(.69+a*.7),-.42+a*.42,2.35],[side*(1.03+a*.35),-.54+a*.8,1.83],[side*(1.08+a*.4),-.43+a*.7,1.16],[side*(1.16+a*.35),-.28+a*.4,.43],[side*(.98+a*.5),-.48+a*.4,-.35],[side*(1.20+a*.55),-.56+a*.3,-1.42],[side*(.90+a*.5),-.45+a*.3,-2.56-.13*i]]
+                      # Back and side locks in a common radial field.
+                      for i in range(14):
+                          a=.89+(2*math.pi-1.78)*i/13
+                          points=[]
+                          for j in range(8):
+                              t=j/7
+                              if j==0: points.append([.22*math.sin(a),.09-.20*math.cos(a),2.64]);continue
+                              if j==1: points.append([.78*math.sin(a),.09-.68*math.cos(a),2.39]);continue
+                              tt=(j-2)/5
+                              w=1.09+.28*tt+.12*math.sin(3*math.pi*tt)
+                              points.append([w*math.sin(a)+.09*math.sin(4*math.pi*tt+a*2)*tt,.08-(.97+.16*tt)*math.cos(a)+.15*math.sin(3*math.pi*tt+a)*tt,1.86-5.10*tt+.18*math.sin(a*5)*tt])
+                          guides[f"MCP_back_{i:02}"]=points
+                      (out/"guide_design.json").write_text(json.dumps(guides,indent=2))
+                      for name,points in guides.items():
+                          await call("create_curve",{"name":name,"spline_type":"POLY","points":points,"dimensions":"3D","bevel_depth":0})
+                      await call("get_object_info",{"name":"MCP_fringe_04"})
+                      (out/"build.request").touch()
+                      for _ in range(180):
+                          if (out/"build.error").exists(): raise RuntimeError((out/"build.error").read_text())
+                          if (out/"build.done").exists(): break
+                          await asyncio.sleep(1)
+                      else: raise RuntimeError("Blender mesh build timed out")
+                      await call("get_scene_info",{})
+                      assert (out/"N4_D08_head_study.glb").stat().st_size>10000
+                      print("N4_D08_MCP_HEAD_BUILD_OK")
           asyncio.run(main())
           PY
+      - name: Render four views in Blender Cycles
+        run: |
+          set -euxo pipefail
+          N4_RENDER=1 "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" -b "$BLENDER_ASSETS_DIR/N4_D08_head_study.blend" --python-exit-code 1 --python tools/n4-d08-build.py > "$BLENDER_ASSETS_DIR/render.log" 2>&1
+          for a in 000 045 090 180; do test -s "$BLENDER_ASSETS_DIR/D08_${a}.png"; done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: n4-mcp-validation
+          name: n4-d08-blender-mcp
           path: n4-mcp-artifacts/
