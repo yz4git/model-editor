@@ -7,6 +7,11 @@ OUT.mkdir(parents=True,exist_ok=True)
 def mesh_objects(): return [o for o in bpy.context.scene.objects if o.type=="MESH"]
 def label(o): return (o.name+" "+o.data.name+" "+" ".join(m.name for m in o.data.materials if m)).lower()
 def hair(o): return any(s in label(o) for s in ("hair","kami","髪"))
+def polygon_material(o,p):
+    return o.data.materials[p.material_index] if 0<=p.material_index<len(o.data.materials) else None
+def skin_polygon(o,p):
+    m=polygon_material(o,p)
+    return bool(m and any(t in m.name.lower() for t in ("skin","face","body","hada","肌")) and not any(t in m.name.lower() for t in ("eye","brow","lash","mouth","lip","hair","cloth")))
 def bounds(obs):
     pts=[o.matrix_world@v.co for o in obs for v in o.data.vertices]
     return Vector([min(p[i] for p in pts) for i in range(3)]),Vector([max(p[i] for p in pts) for i in range(3)])
@@ -72,7 +77,7 @@ def prepare():
     eye_points=[]
     for o in face:
         for p in o.data.polygons:
-            m=o.data.materials[p.material_index]
+            m=polygon_material(o,p)
             if m and "eyeiris" in m.name.lower():
                 eye_points.extend(o.matrix_world@o.data.vertices[i].co for i in p.vertices)
     assert eye_points,"No iris geometry"
@@ -110,7 +115,14 @@ def prepare():
         o.data.update()
     bpy.context.view_layer.update()
     # Body skin includes the rear cranium omitted from the Face object's bounds.
-    cranial=[o.matrix_world@v.co for o in obs if not hair(o) for v in o.data.vertices if (o.matrix_world@v.co).z>lo.z+.25*h]
+    cranial=[]
+    for o in obs:
+        if hair(o):continue
+        for p in o.data.polygons:
+            if not skin_polygon(o,p):continue
+            for i in p.vertices:
+                v=o.matrix_world@o.data.vertices[i].co
+                if v.z>lo.z+.25*h and abs(v.x-mid.x)<w*.8:cranial.append(v)
     assert cranial
     back_y=min(v.y for v in cranial)
     old=[o for o in obs if hair(o)]
@@ -143,16 +155,15 @@ def construct():
     # Raycast onto actual skin, including the body rear cranium.
     sv=[];sf=[]
     for ob in mesh_objects():
-        if hair(ob):continue
+        if hair(ob) or not len(ob.data.materials):continue
         offset=len(sv);sv.extend(ob.matrix_world@v.co for v in ob.data.vertices)
         for poly in ob.data.polygons:
-            m=ob.data.materials[poly.material_index]
-            if m and "skin" in m.name.lower() and all(sv[offset+i].z>lo.z-h*.05 for i in poly.vertices):
+            if skin_polygon(ob,poly) and all(sv[offset+i].z>lo.z-h*.05 and abs(sv[offset+i].x-c.x)<w*.85 for i in poly.vertices):
                 sf.append(tuple(offset+i for i in poly.vertices))
     assert sf,"No cranium skin polygons"
     bvh=BVHTree.FromPolygons(sv,sf)
     origin=Vector((c.x,(info["back_y"]+hi.y)*.5,lo.z+.52*h))
-    verts=[];faces=[];N=120;R=40;min_clearance=1e9
+    verts=[];faces=[];N=120;R=40;min_clearance=1e9;hit_count=0
     for j in range(R+1):
         t=.008+(j/R)*.992
         for i in range(N):
@@ -163,6 +174,7 @@ def construct():
             direction=(nominal-origin).normalized()
             hit,normal,index,dist=bvh.ray_cast(origin+direction*h*2,-direction,h*2)
             if hit is not None:
+                hit_count+=1
                 radius=max((nominal-origin).length,(hit-origin).dot(direction)+h*.025)
                 point=origin+direction*radius
                 min_clearance=min(min_clearance,(point-hit).dot(direction))
@@ -170,6 +182,7 @@ def construct():
             verts.append(tuple(point))
     for j in range(R):
         for i in range(N):a=j*N+i;b=j*N+(i+1)%N;faces.append((a,b,b+N,a+N))
+    assert hit_count>0,"No cranium ray intersections"
     cap=mesh("D13 cranium conformal scalp",verts,faces,[palette[0]])
     bpy.ops.object.select_all(action="DESELECT");bpy.context.view_layer.objects.active=cap;cap.select_set(True)
     bpy.ops.object.mode_set(mode="EDIT");bpy.ops.mesh.select_all(action="SELECT");bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode="OBJECT");cap.select_set(False)
@@ -202,7 +215,7 @@ def construct():
         bpy.data.objects.remove(guide,do_unlink=True)
     bpy.context.view_layer.update()
     allmesh=mesh_objects()
-    report={"donor":info["donor"],"head_bone":bone,"scalp_ray_min_clearance":min_clearance,"mcp_guides_consumed":len(made),"hair_meshes":made,"neutral_shape_keys":True,"reference":"manually traced proportions; original image excluded","clothing":"original donor clothing, NOT final N4 uniform","landmark_error":"not measured","orientation":"verified against iris positions; +Y forward","face_deformation":"shared smooth field on base and morphs","visual_acceptance":"pending","objects":[{"name":o.name,"vertices":len(o.data.vertices),"triangles":sum(len(p.vertices)-2 for p in o.data.polygons),"shape_keys":len(o.data.shape_keys.key_blocks)-1 if o.data.shape_keys else 0} for o in allmesh]}
+    report={"donor":info["donor"],"head_bone":bone,"scalp_ray_min_clearance":min_clearance,"scalp_ray_hits":hit_count,"scalp_ray_total":(R+1)*N,"mcp_guides_consumed":len(made),"hair_meshes":made,"neutral_shape_keys":True,"reference":"manually traced proportions; original image excluded","clothing":"original donor clothing, NOT final N4 uniform","landmark_error":"not measured","orientation":"verified against iris positions; +Y forward","face_deformation":"shared smooth field on base and morphs","visual_acceptance":"pending","objects":[{"name":o.name,"vertices":len(o.data.vertices),"triangles":sum(len(p.vertices)-2 for p in o.data.polygons),"shape_keys":len(o.data.shape_keys.key_blocks)-1 if o.data.shape_keys else 0} for o in allmesh]}
     assert len(made)==len(g)
     assert any(o.type=="ARMATURE" for o in bpy.context.scene.objects)
     (OUT/"metrics.json").write_text(json.dumps(report,indent=2))
