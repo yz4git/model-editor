@@ -1,0 +1,89 @@
+name: N4 isolated Blender MCP validation
+on:
+  push:
+    branches: [n4-d07-mcp-validation]
+    paths: ['.github/workflows/n4-blender-mcp.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      MCP_BRIDGE_HOST: 127.0.0.1
+      BLENDER_ADDON_HOST: 127.0.0.1
+      BLENDER_ASSETS_DIR: ${{ github.workspace }}/n4-mcp-artifacts
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned bridge and Blender
+        run: |
+          set -euxo pipefail
+          mkdir -p "$BLENDER_ASSETS_DIR"
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libegl1 libgl1-mesa-dri libxi6 libxrender1 libxfixes3 libxkbcommon0 libsm6 libx11-6 libxxf86vm1
+          curl --fail --retry 3 -L https://download.blender.org/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz -o "$RUNNER_TEMP/blender.tar.xz"
+          tar -xf "$RUNNER_TEMP/blender.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" --version
+          git clone https://github.com/seehiong/blender-mcp-bridge.git "$RUNNER_TEMP/bridge"
+          git -C "$RUNNER_TEMP/bridge" checkout e1cdb2c9380449eaf4cf04381381899286bd76ee
+          python -m venv "$RUNNER_TEMP/bridge-venv"
+          "$RUNNER_TEMP/bridge-venv/bin/pip" install "$RUNNER_TEMP/bridge"
+      - name: Run real Blender and MCP client
+        run: |
+          set -euxo pipefail
+          out="$BLENDER_ASSETS_DIR"
+          cat > "$RUNNER_TEMP/start_blender.py" <<'PY'
+          import bpy, sys, os
+          sys.path.insert(0, os.path.join(os.environ["RUNNER_TEMP"], "bridge"))
+          import blender_mcp_addon
+          blender_mcp_addon.register()
+          bpy.ops.blendermcp.start_server()
+          print("N4_MCP_ADDON_STARTED", flush=True)
+          PY
+          xvfb-run -a "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" --factory-startup --python "$RUNNER_TEMP/start_blender.py" > "$out/blender.log" 2>&1 &
+          "$RUNNER_TEMP/bridge-venv/bin/blender-mcp-bridge" serve > "$out/bridge.log" 2>&1 &
+          "$RUNNER_TEMP/bridge-venv/bin/python" - <<'PY'
+          import asyncio, json, socket, time, os
+          from pathlib import Path
+          from mcp import ClientSession
+          from mcp.client.streamable_http import streamablehttp_client
+          out=Path(os.environ["BLENDER_ASSETS_DIR"])
+          for port in (8888,8008):
+              for _ in range(90):
+                  try:
+                      with socket.create_connection(("127.0.0.1",port),timeout=1): pass
+                      break
+                  except OSError: time.sleep(1)
+              else: raise RuntimeError(f"Port {port} not ready")
+          async def main():
+              async with streamablehttp_client("http://127.0.0.1:8008/mcp/?transport=stateful") as streams:
+                  async with ClientSession(*streams[:2]) as session:
+                      await session.initialize()
+                      tools=await session.list_tools()
+                      (out/"tools.json").write_text(tools.model_dump_json(indent=2))
+                      results={}
+                      async def call(name,args):
+                          res=await session.call_tool(name,args)
+                          results[name]=res.model_dump(mode="json")
+                          (out/"calls.json").write_text(json.dumps(results,indent=2))
+                          assert not res.isError, results[name]
+                          for c in res.content:
+                              if getattr(c,"type",None)=="text":
+                                  try: payload=json.loads(c.text)
+                                  except ValueError: continue
+                                  if isinstance(payload,dict):
+                                      assert payload.get("status")!="error" and payload.get("success") is not False,payload
+                          return res
+                      await call("get_scene_info",{})
+                      await call("create_cube",{"location":[0,0,2],"size":0.1,"name":"N4_MCP_SMOKE"})
+                      obj=await call("get_object_info",{"name":"N4_MCP_SMOKE"})
+                      assert "N4_MCP_SMOKE" in str(obj)
+                      print("N4_REAL_MCP_SMOKE_OK")
+          asyncio.run(main())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: n4-mcp-validation
+          path: n4-mcp-artifacts/
