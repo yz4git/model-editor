@@ -1,0 +1,147 @@
+name: N4 D09 Blender MCP three-candidate study
+on:
+  push:
+    branches: [n4-d07-mcp-validation]
+    paths: ['.github/workflows/n4-d09-iteration.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate:
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [A, B, C]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      N4_VARIANT: ${{ matrix.variant }}
+      MCP_BRIDGE_HOST: 127.0.0.1
+      BLENDER_ADDON_HOST: 127.0.0.1
+      BLENDER_ASSETS_DIR: ${{ github.workspace }}/n4-mcp-artifacts
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned bridge and Blender
+        run: |
+          set -euxo pipefail
+          mkdir -p "$BLENDER_ASSETS_DIR"
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libegl1 libgl1-mesa-dri libxi6 libxrender1 libxfixes3 libxkbcommon0 libsm6 libx11-6 libxxf86vm1
+          curl --fail --retry 3 -L https://download.blender.org/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz -o "$RUNNER_TEMP/blender.tar.xz"
+          tar -xf "$RUNNER_TEMP/blender.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" --version
+          git clone https://github.com/seehiong/blender-mcp-bridge.git "$RUNNER_TEMP/bridge"
+          git -C "$RUNNER_TEMP/bridge" checkout e1cdb2c9380449eaf4cf04381381899286bd76ee
+          python -m venv "$RUNNER_TEMP/bridge-venv"
+          "$RUNNER_TEMP/bridge-venv/bin/pip" install "$RUNNER_TEMP/bridge"
+      - name: Build D09 using real MCP hair guide objects
+        run: |
+          set -euxo pipefail
+          out="$BLENDER_ASSETS_DIR"
+          cat > "$RUNNER_TEMP/start_blender.py" <<'PY'
+          import bpy, sys, os, runpy
+          sys.path.insert(0, os.path.join(os.environ["RUNNER_TEMP"], "bridge"))
+          import blender_mcp_addon
+          blender_mcp_addon.register()
+          bpy.ops.blendermcp.start_server()
+          runpy.run_path(os.path.join(os.environ["GITHUB_WORKSPACE"],"tools/n4-d09-build.py"))
+          print("N4_MCP_ADDON_STARTED", flush=True)
+          PY
+          xvfb-run -a "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" --factory-startup --python "$RUNNER_TEMP/start_blender.py" > "$out/blender.log" 2>&1 &
+          "$RUNNER_TEMP/bridge-venv/bin/blender-mcp-bridge" serve > "$out/bridge.log" 2>&1 &
+          "$RUNNER_TEMP/bridge-venv/bin/python" - <<'PY'
+          import asyncio, json, socket, time, os, math
+          from pathlib import Path
+          from mcp import ClientSession
+          from mcp.client.streamable_http import streamablehttp_client
+          out=Path(os.environ["BLENDER_ASSETS_DIR"])
+          for port in (8888,8008):
+              for _ in range(90):
+                  try:
+                      with socket.create_connection(("127.0.0.1",port),timeout=1): pass
+                      break
+                  except OSError: time.sleep(1)
+              else: raise RuntimeError(f"Port {port} not ready")
+          async def main():
+              async with streamablehttp_client("http://127.0.0.1:8008/mcp/?transport=stateful") as streams:
+                  async with ClientSession(*streams[:2]) as session:
+                      await session.initialize()
+                      (out/"tools.json").write_text((await session.list_tools()).model_dump_json(indent=2))
+                      results=[]
+                      async def call(name,args):
+                          res=await session.call_tool(name,args)
+                          results.append({"name":name,"args":args,"result":res.model_dump(mode="json")})
+                          (out/"calls.json").write_text(json.dumps(results,indent=2))
+                          assert not res.isError, results[-1]
+                          for c in res.content:
+                              if getattr(c,"type",None)=="text":
+                                  try: payload=json.loads(c.text)
+                                  except ValueError: continue
+                                  if isinstance(payload,dict):
+                                      assert payload.get("status")!="error" and payload.get("success") is not False,payload
+                      await call("get_scene_info",{})
+                      guides={}
+                      variant=os.environ["N4_VARIANT"]
+                      # Root locations are staggered on the crown shell. Fringe tips vary independently.
+                      count={"A":12,"B":10,"C":15}[variant]
+                      for i in range(count):
+                          u=(2*i/(count-1)-1)
+                          side=-1 if u<-.60 else 1
+                          shift={"A":.17,"B":.10,"C":.23}[variant]
+                          rootx=.045+.16*u
+                          tipx=.09+.61*u+shift*(1-.3*abs(u))
+                          tipz=1.48+.36*abs(u)**1.7+.035*math.sin(i*2.4)
+                          guides[f"MCP_fringe_{i:02}"]=[
+                              [rootx,-.14-.05*abs(u),2.625-.025*abs(u)],
+                              [.07+.32*u,-.51,2.46-.035*abs(u)],
+                              [.06+.49*u,-.78,2.16],
+                              [tipx-.095,-.91,1.81+.12*abs(u)],
+                              [tipx,-.81,tipz]]
+                      for side in (-1,1):
+                          for i in range(5):
+                              t=i/4
+                              a=.12*i
+                              guides[f"MCP_side_{side}_{i}"]=[
+                                  [.04+side*(.13+.10*t),-.09+.10*t,2.61-.025*i],
+                                  [side*(.63+.10*t),-.42+.09*t,2.38],
+                                  [side*(.99+.07*t),-.49+.22*t,1.88],
+                                  [side*(1.07+.08*t),-.20+.35*t,1.26],
+                                  [side*(1.11+.09*t),-.10+.35*t,.46],
+                                  [side*(.93+.11*t),-.36+.20*t,-.38],
+                                  [side*(1.18+.12*t),-.52+.16*t,-1.40],
+                                  [side*(.90+.16*t),-.43+.15*t,-2.57-.13*i]]
+                      for i in range(18):
+                          a=.83+(2*math.pi-1.66)*i/17
+                          points=[]
+                          for j in range(8):
+                              if j==0: points.append([.14*math.sin(a),.075-.14*math.cos(a),2.63]);continue
+                              if j==1: points.append([.72*math.sin(a),.075-.67*math.cos(a),2.40]);continue
+                              tt=(j-2)/5
+                              w=1.09+.22*tt+.13*math.sin(3*math.pi*tt+.4*math.cos(a))*tt
+                              points.append([w*math.sin(a)+.09*math.sin(4*math.pi*tt+a*2)*tt,.08-(.97+.15*tt)*math.cos(a)+.15*math.sin(3*math.pi*tt+a)*tt,1.86-5.10*tt+.18*math.sin(a*5)*tt])
+                          guides[f"MCP_back_{i:02}"]=points
+                      (out/"guide_design.json").write_text(json.dumps(guides,indent=2))
+                      for name,points in guides.items():
+                          await call("create_curve",{"name":name,"spline_type":"POLY","points":points,"dimensions":"3D","bevel_depth":0})
+                      await call("get_object_info",{"name":"MCP_fringe_04"})
+                      (out/"build.request").touch()
+                      for _ in range(180):
+                          if (out/"build.error").exists(): raise RuntimeError((out/"build.error").read_text())
+                          if (out/"build.done").exists(): break
+                          await asyncio.sleep(1)
+                      else: raise RuntimeError("Blender mesh build timed out")
+                      await call("get_scene_info",{})
+                      assert (out/"N4_D09_head_study.glb").stat().st_size>10000
+                      print("N4_D09_MCP_HEAD_BUILD_OK")
+          asyncio.run(main())
+          PY
+      - name: Render four views in Blender Cycles
+        run: |
+          set -euxo pipefail
+          N4_RENDER=1 "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" -b "$BLENDER_ASSETS_DIR/N4_D09_head_study.blend" --python-exit-code 1 --python tools/n4-d09-build.py > "$BLENDER_ASSETS_DIR/render.log" 2>&1
+          for a in 000 045 090 180; do test -s "$BLENDER_ASSETS_DIR/D09_${a}.png"; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: n4-d09-${{ matrix.variant }}
+          path: n4-mcp-artifacts/
