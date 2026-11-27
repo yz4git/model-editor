@@ -1,0 +1,109 @@
+name: N4 D13 reference sculpted full body
+on:
+  push:
+    branches: [n4-d07-mcp-validation]
+    paths: ['.github/workflows/n4-d13-iteration.yml']
+  workflow_dispatch:
+concurrency:
+  group: n4-d13-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      MCP_BRIDGE_HOST: 127.0.0.1
+      BLENDER_ADDON_HOST: 127.0.0.1
+      BLENDER_ASSETS_DIR: ${{ github.workspace }}/n4-mcp-artifacts
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned bridge and Blender
+        run: |
+          set -euxo pipefail
+          mkdir -p "$BLENDER_ASSETS_DIR"
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libegl1 libgl1-mesa-dri libxi6 libxrender1 libxfixes3 libxkbcommon0 libsm6 libx11-6 libxxf86vm1
+          curl --fail --retry 3 -L https://download.blender.org/release/Blender5.0/blender-5.0.1-linux-x64.tar.xz -o "$RUNNER_TEMP/blender.tar.xz"
+          tar -xf "$RUNNER_TEMP/blender.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" --version
+          git clone https://github.com/seehiong/blender-mcp-bridge.git "$RUNNER_TEMP/bridge"
+          git -C "$RUNNER_TEMP/bridge" checkout e1cdb2c9380449eaf4cf04381381899286bd76ee
+          python -m venv "$RUNNER_TEMP/bridge-venv"
+          "$RUNNER_TEMP/bridge-venv/bin/pip" install "$RUNNER_TEMP/bridge"
+      - name: Acquire CC0 VRoid donor
+        run: |
+          set -euxo pipefail
+          curl --fail --retry 3 -L https://opengameart.org/sites/default/files/hairsample_female.zip -o "$RUNNER_TEMP/vroid.zip"
+          mkdir -p "$RUNNER_TEMP/vroid"
+          unzip -q "$RUNNER_TEMP/vroid.zip" -d "$RUNNER_TEMP/vroid"
+          find "$RUNNER_TEMP/vroid" -type f
+          printf '%s\n' 'CC0 donor: https://opengameart.org/content/vroid-studio-cc0-models' > "$BLENDER_ASSETS_DIR/source.txt"
+      - name: Create reference guide curves through Blender MCP
+        run: |
+          set -euxo pipefail
+          out="$BLENDER_ASSETS_DIR"
+          cat > "$RUNNER_TEMP/start_blender.py" <<'PY'
+          import bpy, sys, os, runpy
+          sys.path.insert(0, os.path.join(os.environ["RUNNER_TEMP"], "bridge"))
+          import blender_mcp_addon
+          blender_mcp_addon.register()
+          bpy.ops.blendermcp.start_server()
+          runpy.run_path(os.path.join(os.environ["GITHUB_WORKSPACE"],"tools/n4-d13-build.py"))
+          PY
+          xvfb-run -a "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" --factory-startup --python "$RUNNER_TEMP/start_blender.py" > "$out/blender.log" 2>&1 &
+          "$RUNNER_TEMP/bridge-venv/bin/blender-mcp-bridge" serve > "$out/bridge.log" 2>&1 &
+          "$RUNNER_TEMP/bridge-venv/bin/python" - <<'PY'
+          import asyncio, json, socket, time, os
+          from pathlib import Path
+          from mcp import ClientSession
+          from mcp.client.streamable_http import streamablehttp_client
+          out=Path(os.environ["BLENDER_ASSETS_DIR"])
+          for port in (8888,8008):
+              for _ in range(90):
+                  try:
+                      with socket.create_connection(("127.0.0.1",port),timeout=1): pass
+                      break
+                  except OSError: time.sleep(1)
+              else: raise RuntimeError(f"Port {port} not ready")
+          async def main():
+              async with streamablehttp_client("http://127.0.0.1:8008/mcp/?transport=stateful") as streams:
+                  async with ClientSession(*streams[:2]) as session:
+                      await session.initialize()
+                      (out/"tools.json").write_text((await session.list_tools()).model_dump_json(indent=2))
+                      results=[]
+                      async def call(name,args):
+                          res=await session.call_tool(name,args)
+                          results.append({"name":name,"args":args,"result":res.model_dump(mode="json")})
+                          (out/"calls.json").write_text(json.dumps(results,indent=2))
+                          assert not res.isError, results[-1]
+                      await call("get_scene_info",{})
+                      for _ in range(120):
+                          if (out/"guides.json").exists():break
+                          await asyncio.sleep(1)
+                      else:raise RuntimeError("Guide preparation failed")
+                      guides=json.loads((out/"guides.json").read_text())
+                      for name,spec in guides.items():
+                          await call("create_curve",{"name":name,"spline_type":"POLY","points":spec["points"],"dimensions":"3D","bevel_depth":0})
+                      await call("get_object_info",{"name":"D13_fringe_04"})
+                      (out/"build.request").touch()
+                      for _ in range(240):
+                          if (out/"build.error").exists():raise RuntimeError((out/"build.error").read_text())
+                          if (out/"build.done").exists():break
+                          await asyncio.sleep(1)
+                      else:raise RuntimeError("Build timed out")
+                      await call("get_scene_info",{})
+                      assert (out/"D13.glb").stat().st_size>10000
+          asyncio.run(main())
+          PY
+      - name: Render full body and head in Cycles
+        run: |
+          set -euxo pipefail
+          N4_RENDER=1 "$RUNNER_TEMP/blender-5.0.1-linux-x64/blender" -b "$BLENDER_ASSETS_DIR/D13.blend" --python-exit-code 1 --python tools/n4-d13-build.py > "$BLENDER_ASSETS_DIR/render.log" 2>&1
+          for mode in head full; do for a in 000 045 090 180; do test -s "$BLENDER_ASSETS_DIR/D13_${mode}_${a}.png"; done; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: n4-d13-full-body
+          path: n4-mcp-artifacts/
