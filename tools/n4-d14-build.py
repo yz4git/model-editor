@@ -190,7 +190,6 @@ def construct():
     # Preserve MCP paths as editable guides, but replace overlapping separate locks
     # with coherent UV-mapped scalp, curtain and two frontal panels.
     import numpy as np
-    from mathutils import Vector
     guide_points={}
     for name in g:
         guide=bpy.data.objects.get(name)
@@ -230,6 +229,7 @@ def construct():
         return o
     # Reuse measured cranium geometry for crown, then form one continuous
     # side/back curtain. Join at the exact scalp surface instead of a separate cap edge.
+    bpy.context.view_layer.update()
     cap_world=[cap.matrix_world@v.co for v in cap.data.vertices]
     def scalp_at(a,t):
         i=(a%(2*math.pi))/(2*math.pi)*N;j=max(0,min(R-1e-5,t*R))
