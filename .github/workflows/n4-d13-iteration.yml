@@ -2,7 +2,7 @@ name: N4 D13 reference sculpted full body
 on:
   push:
     branches: [n4-d07-mcp-validation]
-    paths: ['.github/workflows/n4-d13-iteration.yml']
+    paths: ['.github/workflows/n4-d13-iteration.yml', 'tools/n4-d13-build.py']
   workflow_dispatch:
 concurrency:
   group: n4-d13-${{ github.ref }}
@@ -44,6 +44,7 @@ jobs:
         run: |
           set -euxo pipefail
           out="$BLENDER_ASSETS_DIR"
+          trap 'if [ -f "$out/blender.log" ]; then tail -80 "$out/blender.log"; fi' ERR
           cat > "$RUNNER_TEMP/start_blender.py" <<'PY'
           import bpy, sys, os, runpy
           sys.path.insert(0, os.path.join(os.environ["RUNNER_TEMP"], "bridge"))
